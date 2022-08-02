@@ -26,10 +26,8 @@ func Init() {
 
 func main() {
 	log.Println("Welcome!")
-	log.Println("Reading configuration... (config.env)")
-	log.Println(". . .")
 
-	config, err := configuration.LoadConfig()
+	config, err := configuration.LoadConfig("")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -42,6 +40,7 @@ func main() {
 	network.RpcUrl = config.RpcUrl
 
 	log.Println("Connecting to", network.Name, "network")
+	log.Println("RPC URL:", config.RpcUrl)
 
 	web3Client, err := ethclient.Dial(network.RpcUrl)
 	if err != nil {
@@ -81,8 +80,7 @@ func main() {
 		log.Fatalln("Destination address is not a valid address")
 	}
 
-	originAccount := common.HexToAddress(originAddress)
 	destinationAccount := common.HexToAddress(config.DestinationWalletAddress)
 
-	functionality.AutoTransfer(originAccount, pkey, destinationAccount, web3Client)
+	functionality.AutoTransfer(pkey, destinationAccount, web3Client, network)
 }

@@ -33,8 +33,8 @@ gum style --foreground 222 "Now, we're going to select a RPC provider for the ne
 You can enter the same URL you used when you set up the network in Metamask"
 
 FLARE_DEFAULT_RPCURL=https://flare-api.flare.network/ext/bc/C/rpc
-SONGBIRD_DEFAULT_RPCURL=https://songbird.towolabs.com/rpc
-COSTON_DEFAULT_RPCURL=https://localhost:9650/ext/bc/C/rpc
+SONGBIRD_DEFAULT_RPCURL=https://songbird-api.flare.network/ext/bc/C/rpc
+COSTON_DEFAULT_RPCURL=https://coston-api.flare.network/ext/bc/C/rpc
 
 RPC_URL=null
 

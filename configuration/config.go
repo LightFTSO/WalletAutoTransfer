@@ -17,14 +17,18 @@ type Config struct {
 	TelegramNotficationsEnabled int    `mapstructure:"TELEGRAM_NOTIFICATIONS_ENABLED"`
 }
 
-func LoadConfig() (config Config, err error) {
+func LoadConfig(cmdConfigPath string) (config Config, err error) {
+	viper.AddConfigPath(cmdConfigPath)
+	/** Verify cmdConfigPath is a path, and it exists **/
+	viper.AddConfigPath("$HOME/.lightftso/")
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
 	viper.SetConfigType("env")
 
 	viper.AutomaticEnv()
-
 	err = viper.ReadInConfig()
+	log.Printf("Reading configuration... (%s)\n", viper.ConfigFileUsed())
+	log.Println(". . .")
 	if err != nil {
 		log.Println(err.Error())
 		panic("Unable to read in config file (check if .env file exists)")

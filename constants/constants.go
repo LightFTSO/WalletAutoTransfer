@@ -27,3 +27,9 @@ var Networks = map[string]*Network{
 	"Songbird": Songbird,
 	"Flare":    Flare,
 }
+
+var Nat = map[string]string{
+	"Coston":   "CFLR",
+	"Songbird": "SGB",
+	"Flare":    "FLR",
+}
