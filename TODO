@@ -1,0 +1,8 @@
+Telegram Notifications
+Send transactions when balance > 0 and do that indefinitely
+Notify the systemd WatchDog for service
+Command line -c to specify config file for Viper
+Verify install process
+Check if golang works fine
+Update install.sh with real urls and other values
+Verify setup.sh

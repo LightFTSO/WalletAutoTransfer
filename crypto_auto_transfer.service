@@ -1,0 +1,29 @@
+[Unit]
+Description=Automatically transfer crypto balance to another address as soon as its received
+ConditionPathExists={{BINARY_FILENAME}}
+After=network.target
+
+[Service]
+Type=notify
+ExecStart={{BINARY_FILENAME}} -c /home/{{USER}}/.lightftso/config.env
+NotifyAccess=main
+WatchdogSec=10
+Restart=on-failure
+
+# Filesystem lockdown
+ProtectSystem=full
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
+# Execute Mappings
+MemoryDenyWriteExecute=true
+
+# Privilege escalation
+NoNewPrivileges=true
+
+# Real-time
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target
