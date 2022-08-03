@@ -139,6 +139,7 @@ USER=$(whoami)
 function install(){
     echo;
     echo "Compiling...";
+    go mod tidy;
     mkdir -p build && go build -o $BUILD_DIR/$BINARY_FILENAME && chmod +x $BUILD_DIR/$BINARY_FILENAME && sleep 1;
     echo "Installing... Please enter your password if prompted:";
     sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1;
