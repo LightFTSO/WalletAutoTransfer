@@ -9,9 +9,9 @@ import (
 type Config struct {
 	Network                     string `mapstructure:"NETWORK"`
 	RpcUrl                      string `mapstructure:"RPC_URL"`
-	DestinationWalletAddress    string `mapstructure:"DESTINATION_WALLET_ADDRESS"`
 	OriginWalletAddress         string `mapstructure:"ORIGIN_WALLET_ADDRESS"`
 	OriginWalletPKey            string `mapstructure:"ORIGIN_WALLET_PKEY"`
+	DestinationWalletAddress    string `mapstructure:"DESTINATION_WALLET_ADDRESS"`
 	TelegramBotApiKey           string `mapstructure:"TELEGRAM_BOT_API_KEY"`
 	TelegramBotChatId           int64  `mapstructure:"TELEGRAM_BOT_CHAT_ID"`
 	TelegramNotficationsEnabled int    `mapstructure:"TELEGRAM_NOTIFICATIONS_ENABLED"`
@@ -34,7 +34,8 @@ func LoadConfig() (config Config, err error) {
 
 	err = viper.Unmarshal(&config)
 	if err != nil {
-		panic("Unable to parse config file (check if .env has the needed values)")
+		log.Println("Unable to parse config file (check if .env has the needed values)")
+		log.Fatalln(err.Error())
 	}
 
 	return

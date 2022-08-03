@@ -37,7 +37,7 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 	prevBlockNumber, err := web3Client.BlockNumber(context.Background())
 	if err != nil {
 		go tgBot.SendMessage("Error obtaining new block (1)")
-		log.Println(err.Error())
+		log.Fatalln(err.Error())
 	}
 
 	blockTimes := make([]uint64, 0, blockTimesCapacity)
@@ -49,12 +49,12 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 
 		if err != nil {
 			go tgBot.SendMessage("Error obtaining new block (2)")
-			log.Println(err.Error())
+			log.Fatalln(err.Error())
 		}
 		block, err := web3Client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
 		if err != nil {
 			go tgBot.SendMessage("Error obtaining new block data")
-			log.Println(err.Error())
+			log.Fatalln(err.Error())
 		}
 
 		switch d := blockNumber - prevBlockNumber; {
@@ -78,7 +78,7 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 				missedBlock, err := web3Client.BlockByNumber(context.Background(), missedBlockNumber)
 				if err != nil {
 					go tgBot.SendMessage(fmt.Sprintf("Error obtaining new block data (2) block number: %d", missedBlockNumber))
-					log.Println(err.Error())
+					log.Fatalln(err.Error())
 				}
 
 				blockTimes = utils.AppendToFIFOSlice(blockTimes, missedBlock.Time(), blockTimesCapacity)
@@ -110,7 +110,7 @@ func CheckBalance(originAccountPkey *ecdsa.PrivateKey, destinationAccount common
 	originAccountPublicKeyECDSA, ok := originAccountPublicKey.(*ecdsa.PublicKey)
 	if !ok {
 		go tgBot.SendMessage("Error obtaining new block data")
-		log.Fatal("error casting public key to ECDSA")
+		log.Fatalln("error casting public key to ECDSA")
 	}
 	originAccountAddress := crypto.PubkeyToAddress(*originAccountPublicKeyECDSA)
 
@@ -137,13 +137,13 @@ func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPk
 	nonce, err := web3Client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		go tgBot.SendMessage(fmt.Sprintf("Error obtaining nonce for address %s", fromAddress))
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 	gasLimit := uint64(2e5)
 	gasPrice, err := web3Client.SuggestGasPrice(context.Background())
 	if err != nil {
 		go tgBot.SendMessage("Error obtaining suggested gas price")
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
@@ -151,19 +151,19 @@ func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPk
 	chainID, err := web3Client.NetworkID(context.Background())
 	if err != nil {
 		go tgBot.SendMessage("Error obtaining network chainId")
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), originAccountPkey)
 	if err != nil {
 		go tgBot.SendMessage("Error signing transaction")
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	err = web3Client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		go tgBot.SendMessage(fmt.Sprintf("Error sending transaction %s", signedTx.Hash().Hex()))
-		log.Fatal(err)
+		log.Fatalln(err)
 		return false
 	}
 

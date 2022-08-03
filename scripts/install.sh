@@ -29,6 +29,8 @@ NETWORK=$(gum choose "Flare" "Songbird" "Coston");
 
 echo "NETWORK=$NETWORK" >> $CONFIG_FILE;
 
+clear;
+
 gum style --foreground 222 "Now, we're going to select a RPC provider for the network, the default choice will work but it might be slow, be rate limited or might fail sometimes for whatever reason.
 You can enter the same URL you used when you set up the network in Metamask"
 
@@ -53,12 +55,14 @@ esac
 RPC_URL=$(gum input --value "$RPC_URL" --placeholder $RPC_URL)
 
 echo "RPC_URL=$RPC_URL" >> $CONFIG_FILE;
+clear;
 
 ## Wallets
+SOURCE_URL=https://github.com/LightFTSO/WalletAutoTransfer
 gum style --border normal --padding "2 2" "$(gum style --foreground 2 'Great!') Now we need the address and the private key of the origin wallet. 
 
 The private key is needed to sign the transactions to send the received funds to another wallet.
-You can check the source code of this program at $SOURCE_URL in order to check that it isn't doing anything nefarious with it."
+You can check the source code of this program at $SOURCE_URL to check that it isn't doing anything nefarious with it."
 
 gum format "Please write (or copy/paste) the address of the origin wallet (the one you want to move the funds from)"
 ORIGIN_WALLET_ADDRESS=$(gum input --placeholder "0xabcd1234...")
@@ -84,7 +88,7 @@ clear;
 
 # Telegram notifications
 TELEGRAM_BOT_API_KEY=null
-TELEGRAM_BOT_CHAT_ID=null
+TELEGRAM_BOT_CHAT_ID=-1
 TELEGRAM_NOTIFICATIONS_ENABLED=0
 function enableTelegram(){
     gum style --border normal --padding "2 2" "Please create a new Telegram Bot, just talk to BotFather ($(echo '{{ Bold "https://t.me/botfather" }}' | gum format -t template))
@@ -148,5 +152,14 @@ function install(){
     rm crypto_auto_transfer.service.temp;
     sudo systemctl daemon-reload && sudo systemctl enable crypto_auto_transfer.service;
     sudo systemctl start crypto_auto_transfer.service;
+
+    gum style --border normal --margin "1" --padding "1 2" --border-foreground 202 "$(gum style --foreground 222 'Finished!')! If everything worked out correctly, you can test the service by sending some funds to it.
+    They should be automatically transferred to the address you chose here.
+    
+    A few caveats:
+    * This only works with native currencies, e.g. FLR, SGB and CFLR. ERC-20 tokens, NFTs or others will not be transferred.
+    * On rare occasions the service might encounter an error (especially if there's a problem communicating with the RPC provider). The service will restart automatically during these times.
+    * You can check the status by issuing this command on the terminal: 'sudo systemctl status crypto_auto_transfer.service'
+    * And you can check the logs with: sudo journalctl '-xeu crypto_auto_transfer.service -f'";
 }
 install;

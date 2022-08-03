@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"flag"
+	"fmt"
 	"log"
 	"strings"
 
@@ -91,8 +92,12 @@ func main() {
 	// start telegram bot if enabled
 	var tgBot telegrambot.TelegramBot
 	if config.TelegramNotficationsEnabled == 1 {
-		tgBot = telegrambot.TelegramBot{Bot: telegrambot.StartBot(config), ChatId: config.TelegramBotChatId}
+		tgBot = telegrambot.TelegramBot{Bot: telegrambot.StartBot(config), ChatId: config.TelegramBotChatId, Enabled: true}
 		go tgBot.SendMessage("Wallet Auto Transfer service by LightFTSO running")
+		go tgBot.SendMessage(fmt.Sprintf("Connected to %s network", config.Network))
+		go tgBot.SendMessage(fmt.Sprintf("Monitoring address %s", config.OriginWalletAddress))
+	} else {
+		tgBot = telegrambot.TelegramBot{Bot: telegrambot.StartDummyBot(), ChatId: 0, Enabled: false}
 	}
 
 	functionality.AutoTransfer(pkey, destinationAccount, web3Client, network, &tgBot)

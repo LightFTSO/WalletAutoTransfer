@@ -8,8 +8,9 @@ import (
 )
 
 type TelegramBot struct {
-	Bot    *tgbotapi.BotAPI
-	ChatId int64
+	Bot     *tgbotapi.BotAPI
+	ChatId  int64
+	Enabled bool
 }
 
 func StartBot(config configuration.Config) *tgbotapi.BotAPI {
@@ -28,7 +29,16 @@ func StartBot(config configuration.Config) *tgbotapi.BotAPI {
 	return TelegramBot
 }
 
+func StartDummyBot() *tgbotapi.BotAPI {
+
+	return nil
+}
+
 func (tgBot *TelegramBot) SendMessage(text string) bool {
+	if !tgBot.Enabled {
+		return true
+	}
+
 	msg := tgbotapi.NewMessage(tgBot.ChatId, text)
 	_, err := tgBot.Bot.Send(msg)
 	if err != nil {
