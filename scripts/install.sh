@@ -83,16 +83,23 @@ echo "DESTINATION_WALLET_ADDRESS=$DESTINATION_WALLET_ADDRESS" >> $CONFIG_FILE;
 clear;
 
 # Telegram notifications
-TELEGRAM_BOT_API_KEY=asdasd
+TELEGRAM_BOT_API_KEY=null
 TELEGRAM_BOT_CHAT_ID=null
 TELEGRAM_NOTIFICATIONS_ENABLED=0
 function enableTelegram(){
-    gum style --border normal --padding "2 2" "Please send any Telegram message to the bot $(echo '{{ Bold "@AutomaticWalletTransfer_ByLFTSO_Bot" }}' | gum format -t template)
+    gum style --border normal --padding "2 2" "Please create a new Telegram Bot, just talk to BotFather ($(echo '{{ Bold "https://t.me/botfather" }}' | gum format -t template))
+    Once you've created a bot and received your authentication token, please enter it below.
+    If you need more help, just go to https://core.telegram.org/bots#6-botfather"
 
-    https://t.me/csaasdas
+    TELEGRAM_BOT_API_KEY=$(gum input --placeholder "Your Telegram bot's auth token here")
+    echo "TELEGRAM_BOT_API_KEY=$TELEGRAM_BOT_API_KEY" >> $CONFIG_FILE;
 
-    It will reply with you chat ID, please enter it here";
-    TELEGRAM_BOT_CHAT_ID=$(gum input --placeholder "The chat ID sent by the Bot")
+    gum style --border normal --padding "2 2" "Now we're going to get your chat ID.
+    When the message 'Bot ready' appears below, send any message to the bot
+    It will reply on Telegram with your chat ID, please enter it below";
+
+    TELEGRAM_BOT_CHAT_ID=$(go run main.go -init-telegram)
+    echo "Your chat ID is: $TELEGRAM_BOT_CHAT_ID"
     TELEGRAM_NOTIFICATIONS_ENABLED=1
 }
 function saveTelegramEnv(){
@@ -112,9 +119,11 @@ These are the settings you chose:
 $(echo '{{ Bold "Network" }}' | gum format -t template): $NETWORK
 $(echo '{{ Bold "RPC Url" }}' | gum format -t template): $RPC_URL
 $(echo '{{ Bold "Origin wallet address" }}' | gum format -t template): $ORIGIN_WALLET_ADDRESS
-$(echo '{{ Bold "Origin wallet private key" }}' | gum format -t template): ***********
+$(echo '{{ Bold "Origin wallet private key" }}' | gum format -t template): **************
 $(echo '{{ Bold "Destination wallet address:" }}' | gum format -t template): $DESTINATION_WALLET_ADDRESS
-$(echo '{{ Bold "Telegram notifications" }}' | gum format -t template): $($TELEGRAM_NOTIFICATIONS_ENABLED && echo Yes)";
+$(echo '{{ Bold "Telegram notifications" }}' | gum format -t template): $(if [ $TELEGRAM_NOTIFICATIONS_ENABLED -eq "1" ];then echo Enabled;else echo Disabled;fi)
+$(echo '{{ Bold "Telegram Bot Token" }}' | gum format -t template): **************
+$(echo '{{ Bold "Chat ID" }}' | gum format -t template): $TELEGRAM_BOT_CHAT_ID";
 
 
 
@@ -124,10 +133,20 @@ BINARY_FILENAME=flare_auto_transfer
 BUILD_DIR=$BASE_PATH/build
 USER=$(whoami)
 function install(){
-    echo "\n"
-    echo "Compiling..." -- mkdir -p build && go build -o $BUILD_DIR/$BINARY_FILENAME && chmod +x $BUILD_DIR/$BINARY_FILENAME && sleep 1
-    echo "Installing... Please enter your password (press enter when done):" -- sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1
-    echo "Creating service... Please enter your password:" -- sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1
-    echo "Initializing service... $($TELEGRAM_NOTIFICATIONS_ENABLED && echo "You should receive a Telegram notification when ready")" -- cp crypto_auto_transfer.service crypto_auto_transfer.service.temp && sed -i "s@{{BINARY_FILENAME}}@\/usr\/bin\/$BINARY_FILENAME@g" crypto_auto_transfer.service.temp && sed -i "s/{{USER}}/$USER" crypto_auto_transfer.service.temp && sudo cp crypto_auto_transfer.service.temp /etc/systemd/system/crypto_auto_transfer.service && sudo systemctl daemon-reload && sudo systemctl enable crypto_auto_transfer.service && sudo systemctl start crypto_auto_transfer.service && rm crypto_auto_transfer.service.temp
+    echo;
+    echo "Compiling...";
+    mkdir -p build && go build -o $BUILD_DIR/$BINARY_FILENAME && chmod +x $BUILD_DIR/$BINARY_FILENAME && sleep 1;
+    echo "Installing... Please enter your password if prompted:";
+    sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1;
+    echo "Creating service... Please enter your password if prompted:";
+    sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1;
+    echo "Initializing service... $(if [ $TELEGRAM_NOTIFICATIONS_ENABLED -eq "1" ];then echo "You should receive a Telegram notification when ready";fi)";
+    cp crypto_auto_transfer.service crypto_auto_transfer.service.temp;
+    sed -i "s@{{BINARY_FILENAME}}@\/usr\/bin\/$BINARY_FILENAME@g" crypto_auto_transfer.service.temp;
+    sed -i "s@{{USER}}@$USER@g" crypto_auto_transfer.service.temp;
+    sudo cp crypto_auto_transfer.service.temp /etc/systemd/system/crypto_auto_transfer.service;
+    rm crypto_auto_transfer.service.temp;
+    sudo systemctl daemon-reload && sudo systemctl enable crypto_auto_transfer.service;
+    sudo systemctl start crypto_auto_transfer.service;
 }
-install
+install;

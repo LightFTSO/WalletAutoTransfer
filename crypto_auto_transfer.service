@@ -4,11 +4,13 @@ ConditionPathExists={{BINARY_FILENAME}}
 After=network.target
 
 [Service]
-Type=notify
-ExecStart={{BINARY_FILENAME}} -c /home/{{USER}}/.lightftso/config.env
-NotifyAccess=main
-WatchdogSec=10
+User={{USER}}
+Type=simple
+ExecStart={{BINARY_FILENAME}}
+#NotifyAccess=main
+#WatchdogSec=10
 Restart=on-failure
+RestartSec=20
 
 # Filesystem lockdown
 ProtectSystem=full

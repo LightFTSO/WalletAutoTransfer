@@ -3,31 +3,37 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"flag"
 	"log"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/spf13/viper"
 	"lightft.so/WalletAutoTransfer/configuration"
 	"lightft.so/WalletAutoTransfer/constants"
 	"lightft.so/WalletAutoTransfer/functionality"
+	"lightft.so/WalletAutoTransfer/telegrambot"
 	"lightft.so/WalletAutoTransfer/utils"
 )
 
-func Init() {
-	viper.SetConfigFile(".env")
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(err)
-	}
-}
-
 func main() {
+	initTelegram := flag.Bool("init-telegram", false, "Initialize Telegram Bot to get the chat ID")
+	flag.Parse()
+
+	if *initTelegram {
+		config, err := configuration.LoadConfig()
+		if err != nil {
+			log.Fatal("cannot load config:", err)
+		}
+
+		telegrambot.ConfigureChatId(config)
+		return
+	}
+
 	log.Println("Welcome!")
 
-	config, err := configuration.LoadConfig("")
+	config, err := configuration.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
@@ -82,5 +88,12 @@ func main() {
 
 	destinationAccount := common.HexToAddress(config.DestinationWalletAddress)
 
-	functionality.AutoTransfer(pkey, destinationAccount, web3Client, network)
+	// start telegram bot if enabled
+	var tgBot telegrambot.TelegramBot
+	if config.TelegramNotficationsEnabled == 1 {
+		tgBot = telegrambot.TelegramBot{Bot: telegrambot.StartBot(config), ChatId: config.TelegramBotChatId}
+		go tgBot.SendMessage("Wallet Auto Transfer service by LightFTSO running")
+	}
+
+	functionality.AutoTransfer(pkey, destinationAccount, web3Client, network, &tgBot)
 }

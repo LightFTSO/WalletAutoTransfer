@@ -13,19 +13,17 @@ type Config struct {
 	OriginWalletAddress         string `mapstructure:"ORIGIN_WALLET_ADDRESS"`
 	OriginWalletPKey            string `mapstructure:"ORIGIN_WALLET_PKEY"`
 	TelegramBotApiKey           string `mapstructure:"TELEGRAM_BOT_API_KEY"`
-	TelegramBotChatId           string `mapstructure:"TELEGRAM_BOT_CHAT_ID"`
+	TelegramBotChatId           int64  `mapstructure:"TELEGRAM_BOT_CHAT_ID"`
 	TelegramNotficationsEnabled int    `mapstructure:"TELEGRAM_NOTIFICATIONS_ENABLED"`
 }
 
-func LoadConfig(cmdConfigPath string) (config Config, err error) {
-	viper.AddConfigPath(cmdConfigPath)
-	/** Verify cmdConfigPath is a path, and it exists **/
+func LoadConfig() (config Config, err error) {
 	viper.AddConfigPath("$HOME/.lightftso/")
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
 	viper.SetConfigType("env")
-
 	viper.AutomaticEnv()
+
 	err = viper.ReadInConfig()
 	log.Printf("Reading configuration... (%s)\n", viper.ConfigFileUsed())
 	log.Println(". . .")

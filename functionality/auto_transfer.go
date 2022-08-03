@@ -3,6 +3,7 @@ package functionality
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"log"
 	"math/big"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"lightft.so/WalletAutoTransfer/constants"
+	"lightft.so/WalletAutoTransfer/telegrambot"
 	"lightft.so/WalletAutoTransfer/utils"
 )
 
@@ -29,11 +31,12 @@ import (
 
 const blockTimesCapacity int = 500
 
-func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.Address, web3Client *ethclient.Client, network *constants.Network) {
+func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.Address, web3Client *ethclient.Client, network *constants.Network, tgBot *telegrambot.TelegramBot) {
 	currency := constants.Nat[network.Name]
 
 	prevBlockNumber, err := web3Client.BlockNumber(context.Background())
 	if err != nil {
+		go tgBot.SendMessage("Error obtaining new block (1)")
 		log.Println(err.Error())
 	}
 
@@ -45,10 +48,12 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 		blockNumber, err := web3Client.BlockNumber(context.Background())
 
 		if err != nil {
+			go tgBot.SendMessage("Error obtaining new block (2)")
 			log.Println(err.Error())
 		}
 		block, err := web3Client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
 		if err != nil {
+			go tgBot.SendMessage("Error obtaining new block data")
 			log.Println(err.Error())
 		}
 
@@ -57,20 +62,22 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 			time.Sleep(time.Second)
 			continue
 		case d == 1:
-			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency)
+			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency, tgBot)
 
 			prevBlockNumber = blockNumber
 			blockTimes = utils.AppendToFIFOSlice(blockTimes, block.Time(), blockTimesCapacity)
 			avgBlockTime = utils.GetAverageBlockTime(blockTimes)
 
 		case d > 1:
-			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency)
+			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency, tgBot)
 
 			missedBlocks := int(blockNumber-prevBlockNumber) - 1
 			//log.Printf("Missed %d blocks\n", missedBlocks)
 			for i := 1; i <= missedBlocks; i++ {
-				missedBlock, err := web3Client.BlockByNumber(context.Background(), big.NewInt(int64(prevBlockNumber)+int64(i)))
+				missedBlockNumber := big.NewInt(int64(prevBlockNumber) + int64(i))
+				missedBlock, err := web3Client.BlockByNumber(context.Background(), missedBlockNumber)
 				if err != nil {
+					go tgBot.SendMessage(fmt.Sprintf("Error obtaining new block data (2) block number: %d", missedBlockNumber))
 					log.Println(err.Error())
 				}
 
@@ -91,7 +98,7 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 
 }
 
-func CheckBalance(originAccountPkey *ecdsa.PrivateKey, destinationAccount common.Address, web3Client *ethclient.Client, currency string) bool {
+func CheckBalance(originAccountPkey *ecdsa.PrivateKey, destinationAccount common.Address, web3Client *ethclient.Client, currency string, tgBot *telegrambot.TelegramBot) bool {
 	_limitStr := "0.3"
 	_limit, err := strconv.ParseInt(utils.ToWei(_limitStr, "ether"), 10, 64)
 	if err != nil {
@@ -102,6 +109,7 @@ func CheckBalance(originAccountPkey *ecdsa.PrivateKey, destinationAccount common
 	originAccountPublicKey := originAccountPkey.Public()
 	originAccountPublicKeyECDSA, ok := originAccountPublicKey.(*ecdsa.PublicKey)
 	if !ok {
+		go tgBot.SendMessage("Error obtaining new block data")
 		log.Fatal("error casting public key to ECDSA")
 	}
 	originAccountAddress := crypto.PubkeyToAddress(*originAccountPublicKeyECDSA)
@@ -112,23 +120,29 @@ func CheckBalance(originAccountPkey *ecdsa.PrivateKey, destinationAccount common
 	}
 
 	if balance.Cmp(limit) == 1 { // if balance is greater than limit (0.3)
-		log.Printf("Balance is greater than %s%s, sending funds to %s", _limitStr, currency, destinationAccount)
-		go sendTransaction(big.NewInt(0).Sub(balance, limit), originAccountAddress, originAccountPkey, destinationAccount, web3Client, currency)
+		msg := fmt.Sprintf("Balance is greater than %s%s, sending funds to %s", _limitStr, currency, destinationAccount)
+		go tgBot.SendMessage(msg)
+		log.Printf(msg)
+		go sendTransaction(big.NewInt(0).Sub(balance, limit), originAccountAddress, originAccountPkey, destinationAccount, web3Client, currency, tgBot)
 	}
 
 	return true
 }
 
-func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPkey *ecdsa.PrivateKey, toAddress common.Address, web3Client *ethclient.Client, currency string) bool {
-	log.Printf("Transferring %s%s from %s… to %s…\n", utils.FromWei(value.String(), "ether"), currency, fromAddress.Hex()[:10], toAddress.Hex()[:10])
+func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPkey *ecdsa.PrivateKey, toAddress common.Address, web3Client *ethclient.Client, currency string, tgBot *telegrambot.TelegramBot) bool {
+	msg := fmt.Sprintf("Transferring %s%s from %s… to %s…\n", utils.FromWei(value.String(), "ether"), currency, fromAddress.Hex()[:10], toAddress.Hex()[:10])
+	go tgBot.SendMessage(msg)
+	log.Printf(msg)
 
 	nonce, err := web3Client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
+		go tgBot.SendMessage(fmt.Sprintf("Error obtaining nonce for address %s", fromAddress))
 		log.Fatal(err)
 	}
 	gasLimit := uint64(2e5)
 	gasPrice, err := web3Client.SuggestGasPrice(context.Background())
 	if err != nil {
+		go tgBot.SendMessage("Error obtaining suggested gas price")
 		log.Fatal(err)
 	}
 
@@ -136,22 +150,29 @@ func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPk
 
 	chainID, err := web3Client.NetworkID(context.Background())
 	if err != nil {
+		go tgBot.SendMessage("Error obtaining network chainId")
 		log.Fatal(err)
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), originAccountPkey)
 	if err != nil {
+		go tgBot.SendMessage("Error signing transaction")
 		log.Fatal(err)
 	}
 
 	err = web3Client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
+		go tgBot.SendMessage(fmt.Sprintf("Error sending transaction %s", signedTx.Hash().Hex()))
 		log.Fatal(err)
 		return false
 	}
 
 	log.Printf("Tx hash: %s Nonce: %d", signedTx.Hash().Hex(), nonce) // tx sent: 0x77006fcb3938f648e2cc65bafd27dec30b9bfbe9df41f78498b9c8b7322a249e
-	log.Printf("Verify it at https://coston-explorer.flare.network/tx/%s", signedTx.Hash().Hex())
+	txVerifyMSg := fmt.Sprintf("Verify it at https://coston-explorer.flare.network/tx/%s", signedTx.Hash().Hex())
+	log.Printf(txVerifyMSg)
+	msg = fmt.Sprintf("Sent %s%s to %s…\n", utils.FromWei(value.String(), "ether"), currency, toAddress.Hex()[:10])
+	tgBot.SendMessage(msg)
+	tgBot.SendMessage(txVerifyMSg)
 	return true
 }
 
