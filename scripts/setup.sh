@@ -128,8 +128,10 @@ go version;
 echo "Installing setup tools..."
 go install github.com/charmbracelet/gum@latest > /dev/null
 
+chmod +x scripts/create_config.sh
 chmod +x scripts/install.sh
-scripts/install.sh
+./scripts/create_config.sh
+./scripts/install.sh
 
 
 
