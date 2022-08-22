@@ -133,6 +133,8 @@ gum style --border normal --padding "2 2" "$(gum style --foreground 2 'Perfect!'
 These are the settings you chose:
 $(echo '{{ Bold "Network" }}' | gum format -t template): $NETWORK
 $(echo '{{ Bold "RPC Url" }}' | gum format -t template): $RPC_URL
+$(echo '{{ Bold "Chain ID" }}' | gum format -t template): $CHAIN_ID
+$(echo '{{ Bold "Native currency" }}' | gum format -t template): $NAT
 $(echo '{{ Bold "Origin wallet address" }}' | gum format -t template): $ORIGIN_WALLET_ADDRESS
 $(echo '{{ Bold "Origin wallet private key" }}' | gum format -t template): **************
 $(echo '{{ Bold "Destination wallet address:" }}' | gum format -t template): $DESTINATION_WALLET_ADDRESS
