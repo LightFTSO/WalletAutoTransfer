@@ -22,36 +22,25 @@ func main() {
 	initTelegram := flag.Bool("init-telegram", false, "Initialize Telegram Bot to get the chat ID")
 	flag.Parse()
 
-	if *initTelegram {
-		config, err := configuration.LoadConfig()
-		if err != nil {
-			log.Fatal("cannot load config:", err)
-		}
-
-		telegrambot.ConfigureChatId(config)
-		return
-	}
-
-	log.Println("Welcome!")
-
 	config, err := configuration.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
 
-	network, validNetwork := constants.Networks[config.Network]
-	if validNetwork == false {
-		log.Fatal("The network \"", config.Network, "\" specified in the config.env file is not valid. Valid values are {Coston, Flare, Songbird}")
+	if *initTelegram {
+		telegrambot.ConfigureChatId(config)
+		return
 	}
 
-	network.RpcUrl = config.RpcUrl
-
-	log.Println("Connecting to", network.Name, "network")
+	log.Println("Welcome!")
+	log.Println("Connecting to", config.Network, "network. ChainId: ", config.ChainId)
 	log.Println("RPC URL:", config.RpcUrl)
 
-	web3Client, err := ethclient.Dial(network.RpcUrl)
+	var network = &constants.Network{Name: config.Network, ChainId: config.ChainId, RpcUrl: config.RpcUrl, Nat: config.Nat}
+
+	web3Client, err := ethclient.Dial(config.RpcUrl)
 	if err != nil {
-		log.Fatal("Could not connect to", network.Name, "network")
+		log.Fatal("Could not connect to", config.Network, "network")
 		log.Fatal(err.Error())
 	}
 
@@ -59,9 +48,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't read block number")
 	}
-	if int(chainId.Uint64()) != network.ChainId {
-		log.Fatal("The connected network's chainId (", chainId, ") doesn't match the network specified in the config.env file (", network.Name, " chainId: ", network.ChainId, ")")
+	if int(chainId.Uint64()) != config.ChainId {
+		log.Fatal("The connected network's chainId (", chainId, ") doesn't match the network specified in the config.env file (", config.Network, " chainId: ", config.ChainId, ")")
 	}
+
+	/** Wallet verification section **/
 
 	log.Println("Verifying wallets...")
 
@@ -91,7 +82,7 @@ func main() {
 
 	// start telegram bot if enabled
 	var tgBot telegrambot.TelegramBot
-	if config.TelegramNotficationsEnabled == 1 {
+	if config.TelegramNotficationsEnabled {
 		tgBot = telegrambot.TelegramBot{Bot: telegrambot.StartBot(config), ChatId: config.TelegramBotChatId, Enabled: true}
 		go tgBot.SendMessage("Wallet Auto Transfer service by LightFTSO running")
 		go tgBot.SendMessage(fmt.Sprintf("Connected to %s network", config.Network))

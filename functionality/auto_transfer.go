@@ -32,8 +32,6 @@ import (
 const blockTimesCapacity int = 500
 
 func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.Address, web3Client *ethclient.Client, network *constants.Network, tgBot *telegrambot.TelegramBot) {
-	currency := constants.Nat[network.Name]
-
 	prevBlockNumber, err := web3Client.BlockNumber(context.Background())
 	if err != nil {
 		go tgBot.SendMessage("Error obtaining new block (1)")
@@ -62,14 +60,14 @@ func AutoTransfer(originPrivateKey *ecdsa.PrivateKey, destinationAccount common.
 			time.Sleep(time.Second)
 			continue
 		case d == 1:
-			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency, tgBot)
+			go CheckBalance(originPrivateKey, destinationAccount, web3Client, network.Nat, tgBot)
 
 			prevBlockNumber = blockNumber
 			blockTimes = utils.AppendToFIFOSlice(blockTimes, block.Time(), blockTimesCapacity)
 			avgBlockTime = utils.GetAverageBlockTime(blockTimes)
 
 		case d > 1:
-			go CheckBalance(originPrivateKey, destinationAccount, web3Client, currency, tgBot)
+			go CheckBalance(originPrivateKey, destinationAccount, web3Client, network.Nat, tgBot)
 
 			missedBlocks := int(blockNumber-prevBlockNumber) - 1
 			//log.Printf("Missed %d blocks\n", missedBlocks)
@@ -167,12 +165,14 @@ func sendTransaction(value *big.Int, fromAddress common.Address, originAccountPk
 		return false
 	}
 
-	log.Printf("Tx hash: %s Nonce: %d", signedTx.Hash().Hex(), nonce) // tx sent: 0x77006fcb3938f648e2cc65bafd27dec30b9bfbe9df41f78498b9c8b7322a249e
-	txVerifyMSg := fmt.Sprintf("Verify it at https://coston-explorer.flare.network/tx/%s", signedTx.Hash().Hex())
-	log.Printf(txVerifyMSg)
+	log.Printf("Tx hash: %s Nonce: %d", signedTx.Hash().Hex(), nonce)
+	//txVerifyMSg := fmt.Sprintf("Verify it at https://coston-explorer.flare.network/tx/%s", signedTx.Hash().Hex())
+	//log.Printf(txVerifyMSg)
 	msg = fmt.Sprintf("Sent %s%s to %s…\n", utils.FromWei(value.String(), "ether"), currency, toAddress.Hex()[:10])
+	msg2 := fmt.Sprintf("Transaction hash: %s", signedTx.Hash().Hex())
 	tgBot.SendMessage(msg)
-	tgBot.SendMessage(txVerifyMSg)
+	tgBot.SendMessage(msg2)
+	//tgBot.SendMessage(txVerifyMSg)
 	return true
 }
 

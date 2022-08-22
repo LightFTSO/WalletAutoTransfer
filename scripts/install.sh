@@ -25,7 +25,9 @@ clear;
 touch $CONFIG_FILE;
 
 gum style --foreground 222 "First, we're need the network we're going to work in, Flare is selected by default";
-NETWORK=$(gum choose "Flare" "Songbird" "Coston");
+NETWORK=$(gum choose "Flare" "Songbird" "Coston", "Other");
+
+if [ ]
 
 echo "NETWORK=$NETWORK" >> $CONFIG_FILE;
 
@@ -43,18 +45,27 @@ RPC_URL=null
 case $NETWORK in
     Flare)
         RPC_URL=$FLARE_DEFAULT_RPCURL
+        NAT=FLR
     ;;
     Songbird)
         RPC_URL=$SONGBIRD_DEFAULT_RPCURL
+        NAT=SGB
     ;;
     Coston)
         RPC_URL=$COSTON_DEFAULT_RPCURL
+        NAT=CFLR
+    ;;
+    Other)
+        $NETWORK=$(gum input --placeholder "Enter the network name here");
+        RPC_URL=$COSTON_DEFAULT_RPCURL
+        NAT=$(gum input --placeholder "Enter the network's native token here (e.g. ETH for Ethereum)");
     ;;
 esac
 
-RPC_URL=$(gum input --value "$RPC_URL" --placeholder $RPC_URL)
+RPC_URL=$(gum input --value "$RPC_URL" --placeholder $RPC_URL);
 
 echo "RPC_URL=$RPC_URL" >> $CONFIG_FILE;
+echo "NAT=$NAT" >> $CONFIG_FILE;
 clear;
 
 ## Wallets
@@ -157,7 +168,7 @@ function install(){
     gum style --border normal --margin "1" --padding "1 2" --border-foreground 202 "$(gum style --foreground 222 'Finished!')! If everything worked out correctly, you can test the service by sending some funds to it.
     They should be automatically transferred to the address you chose here.
     
-    A few caveats:
+    A few notes:
     * This only works with native currencies, e.g. FLR, SGB and CFLR. ERC-20 tokens, NFTs or others will not be transferred.
     * On rare occasions the service might encounter an error (especially if there's a problem communicating with the RPC provider). The service will restart automatically during these times.
     * You can check the status by issuing this command on the terminal: 'sudo systemctl status crypto_auto_transfer.service'
