@@ -157,13 +157,12 @@ function install(){
     echo "Installing... Please enter your password if prompted:";
     sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1;
     echo "Creating service... Please enter your password if prompted:";
-    sudo cp $BUILD_DIR/$BINARY_FILENAME /usr/bin/$BINARY_FILENAME && sleep 1;
-    echo "Initializing service... $(if [ $TELEGRAM_NOTIFICATIONS_ENABLED -eq "1" ];then echo "You should receive a Telegram notification when ready";fi)";
     cp crypto_auto_transfer.service crypto_auto_transfer.service.temp;
     sed -i "s@{{BINARY_FILENAME}}@\/usr\/bin\/$BINARY_FILENAME@g" crypto_auto_transfer.service.temp;
     sed -i "s@{{USER}}@$USER@g" crypto_auto_transfer.service.temp;
     sudo cp crypto_auto_transfer.service.temp /etc/systemd/system/crypto_auto_transfer.service;
     rm crypto_auto_transfer.service.temp;
+    echo "Initializing service... $(if [ $TELEGRAM_NOTIFICATIONS_ENABLED -eq "1" ];then echo "You should receive a Telegram notification when ready";fi)";
     sudo systemctl daemon-reload && sudo systemctl enable crypto_auto_transfer.service;
     sudo systemctl start crypto_auto_transfer.service;
 
